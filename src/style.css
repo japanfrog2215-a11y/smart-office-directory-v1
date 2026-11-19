@@ -34,3 +34,16 @@ body{background:radial-gradient(circle at 12% 10%,#ffe6ef 0,transparent 30%),rad
 .signed-in{background:#fceaf1;color:#9e7087}.toast{background:#a96f89}
 .add-button{height:40px;padding:0 14px;border:0;border-radius:14px;background:#d98eae;color:white;display:flex;align-items:center;gap:6px;box-shadow:0 5px 14px #d98eae38;font-size:12px}
 @media(max-width:650px){.add-button{height:38px;padding:0 12px}}
+
+
+/* Multi-person contact form */
+.title-add-row{display:flex;gap:8px;align-items:center}
+.title-add-row input{flex:1;min-width:0}
+.inline-add-person,.add-person-button{border:1px solid #efc9d8;background:#fff0f5;color:#bd7895;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.inline-add-person{width:42px;height:42px;flex:0 0 42px}
+.inline-add-person:hover,.add-person-button:hover{background:#fbe0eb}
+.add-person-button{align-self:flex-start;padding:10px 14px;font-size:12px;font-weight:600}
+.extra-person{border:1px solid #f1dce5;background:#fff6fa;border-radius:14px;padding:14px;margin-top:8px}
+.extra-person-head{display:flex;align-items:center;justify-content:space-between;color:#a16f87;font-size:12px;margin-bottom:12px}
+.extra-person-head button{border:0;background:transparent;color:#c1849e;display:flex;align-items:center;gap:5px;font-size:11px}
+.contact-remark{color:#b47c95;background:#fff0f5;border-radius:7px;padding:4px 7px;display:inline-block!important;width:fit-content}
