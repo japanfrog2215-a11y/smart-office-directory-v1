@@ -47,3 +47,8 @@ body{background:radial-gradient(circle at 12% 10%,#ffe6ef 0,transparent 30%),rad
 .extra-person-head{display:flex;align-items:center;justify-content:space-between;color:#a16f87;font-size:12px;margin-bottom:12px}
 .extra-person-head button{border:0;background:transparent;color:#c1849e;display:flex;align-items:center;gap:5px;font-size:11px}
 .contact-remark{color:#b47c95;background:#fff0f5;border-radius:7px;padding:4px 7px;display:inline-block!important;width:fit-content}
+
+
+/* Multiline text entry: Shift+Enter adds a new line */
+.admin-form textarea{width:100%;min-height:42px;resize:vertical;border:1px solid #f0dce5;border-radius:9px;padding:10px 11px;background:#fff;color:#805f70;outline-color:#dfa5bd;font:inherit;font-size:13px;line-height:1.55;}
+.admin-form textarea:focus{border-color:#dfa5bd;box-shadow:0 0 0 3px #fbeaf1}
