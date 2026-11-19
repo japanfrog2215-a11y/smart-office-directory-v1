@@ -7,6 +7,7 @@ type Contact = {
   title: string; extension: string; location: string; email: string; remark: string;
 };
 const LOCAL_KEY = 'office-local-contacts';
+const ADMIN_EMAIL = 'japanfrog2215@gmail.com';
 const departments = ['行政部','人事部','財務部','市場部','資訊科技部','客戶服務部','營運部','其他'];
 const emptyContact: Omit<Contact, 'id'> = { name:'', english_name:'', department:'', title:'', extension:'', location:'', email:'', remark:'' };
 
@@ -33,8 +34,14 @@ export default function App() {
   }
   useEffect(() => {
     if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session?.user.email?.toLowerCase() === ADMIN_EMAIL) setSession(data.session);
+      else if (data.session) await supabase.auth.signOut();
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, next) => {
+      if (!next || next.user.email?.toLowerCase() === ADMIN_EMAIL) setSession(next);
+      else { setSession(null); await supabase.auth.signOut(); }
+    });
     loadContacts();
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -52,8 +59,11 @@ export default function App() {
   function toggleFavorite(id: string) { setFavorites(old => old.includes(id) ? old.filter(x => x !== id) : [...old, id]); }
   async function signIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); if (!supabase) return;
-    const data = new FormData(e.currentTarget); setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: String(data.get('email')), password: String(data.get('password')) });
+    const data = new FormData(e.currentTarget);
+    const email = String(data.get('email')).trim().toLowerCase();
+    if (email !== ADMIN_EMAIL) { setNotice('此電郵並非指定管理員帳戶'); return; }
+    setBusy(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password: String(data.get('password')) });
     setBusy(false); setNotice(error ? '登入失敗：' + error.message : '管理員登入成功');
   }
   async function signOut() { if (supabase) await supabase.auth.signOut(); setAdminOpen(false); }
