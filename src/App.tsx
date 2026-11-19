@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, Leaf, Heart, Users, Building2, Plus, Settings, X, LogIn, LogOut, Download, Sprout, MapPin, Mail, Pencil, Trash2 } from 'lucide-react';
+import { Search, Leaf, Heart, Users, Building2, Plus, Settings, X, LogIn, LogOut, Download, MapPin, Mail, Pencil, Trash2 } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './supabase';
 
 type Contact = {
