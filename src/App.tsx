@@ -98,7 +98,7 @@ export default function App() {
     const q = query.trim().toLocaleLowerCase();
     const matchesQuery = !q || [c.name,c.english_name,c.department,c.title,c.extension,c.email,c.location,c.remark].some(v => (v || '').toLocaleLowerCase().includes(q));
     return matchesDepartment && matchesFavorite && matchesQuery;
-  }), [contacts, department, query, showFavorites, favorites]);
+  }).sort((a, b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id))), [contacts, department, query, showFavorites, favorites]);
 
   function startAdd() { setEditing(null); setForm(emptyContact); setExtraPeople([]); setAddOpen(true); }
   function toggleFavorite(id: string) { setFavorites(old => old.includes(id) ? old.filter(x => x !== id) : [...old, id]); }
