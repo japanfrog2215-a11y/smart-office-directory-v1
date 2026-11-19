@@ -71,7 +71,7 @@ export default function App() {
     let active = true;
     async function loadHeroSettings() {
       if (!supabase) return;
-      const { data, error } = await supabase.from('app_settings').select('value').eq('key', 'homepage_hero').maybeSingle();
+      const { data, error } = await supabase.from('app_settings').select('value, updated_at').eq('key', 'homepage_hero').maybeSingle();
       if (!active) return;
       if (!error && data?.value) {
         const defaults = { eyebrow:'', title:'', description:'', fontSize:32, position:'left' };
