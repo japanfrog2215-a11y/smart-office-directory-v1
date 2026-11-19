@@ -28,17 +28,23 @@ export default function App() {
   const [heroEditorOpen, setHeroEditorOpen] = useState(false);
   const [heroText, setHeroText] = useState(() => { try { return JSON.parse(localStorage.getItem('office-hero-text') || '{"eyebrow":"","title":"","description":"","fontSize":32,"position":"left"}'); } catch { return { eyebrow:'', title:'', description:'', fontSize:32, position:'left' }; } });
   async function saveHeroText() {
-    localStorage.setItem('office-hero-text', JSON.stringify(heroText));
-    if (!supabase || !session) { setNotice('請先以管理員登入，才能儲存首頁設定'); return; }
+    if (!session) { setNotice('請先以管理員登入，才能儲存首頁設定'); return; }
+    const savedAt = new Date().toISOString();
+    localStorage.setItem('office-hero-text', JSON.stringify({ ...heroText, _savedAt: savedAt }));
+    if (!supabase) {
+      setHeroEditorOpen(false);
+      setNotice('首頁文字已儲存至此裝置');
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.from('app_settings').upsert(
-      { key: 'homepage_hero', value: heroText, updated_at: new Date().toISOString() },
+      { key: 'homepage_hero', value: heroText, updated_at: savedAt },
       { onConflict: 'key' }
     );
     setBusy(false);
-    if (error) { setNotice('雲端儲存失敗：' + error.message + '。本機設定仍已保留'); return; }
     setHeroEditorOpen(false);
-    setNotice('首頁文字已儲存至雲端');
+    if (error) setNotice('本機已保存；雲端同步失敗：' + error.message);
+    else setNotice('首頁文字已儲存至雲端');
   }
 
   async function loadContacts() {
@@ -70,9 +76,15 @@ export default function App() {
       if (!error && data?.value) {
         const defaults = { eyebrow:'', title:'', description:'', fontSize:32, position:'left' };
         const remote = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
-        const merged = { ...defaults, ...remote };
+        let local: any = null;
+        try { local = JSON.parse(localStorage.getItem('office-hero-text') || 'null'); } catch { local = null; }
+        const localTime = local?._savedAt ? new Date(local._savedAt).getTime() : 0;
+        const remoteTime = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+        const chosen = local && localTime > remoteTime ? local : remote;
+        const merged = { ...defaults, ...chosen };
+        delete (merged as any)._savedAt;
         setHeroText(merged);
-        localStorage.setItem('office-hero-text', JSON.stringify(merged));
+        localStorage.setItem('office-hero-text', JSON.stringify({ ...merged, _savedAt: chosen._savedAt || data.updated_at || new Date().toISOString() }));
       }
     }
     loadHeroSettings();
