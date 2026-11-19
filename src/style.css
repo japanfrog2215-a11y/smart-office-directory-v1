@@ -52,3 +52,8 @@ body{background:radial-gradient(circle at 12% 10%,#ffe6ef 0,transparent 30%),rad
 /* Multiline text entry: Shift+Enter adds a new line */
 .admin-form textarea{width:100%;min-height:42px;resize:vertical;border:1px solid #f0dce5;border-radius:9px;padding:10px 11px;background:#fff;color:#805f70;outline-color:#dfa5bd;font:inherit;font-size:13px;line-height:1.55;}
 .admin-form textarea:focus{border-color:#dfa5bd;box-shadow:0 0 0 3px #fbeaf1}
+
+
+/* English name: 2px smaller than Chinese name */
+.contact-name{font-size:14px}
+.contact-en{font-size:12px}
