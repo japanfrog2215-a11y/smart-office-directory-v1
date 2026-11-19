@@ -79,6 +79,37 @@ export default function App() {
     if (result.error) setNotice('儲存失敗：' + result.error.message);
     else { setNotice('資料已儲存'); setAdminOpen(false); await loadContacts(); }
   }
+  async function importLocalContacts() {
+    if (!supabase) { setNotice('共用資料庫尚未連接'); return; }
+    let local: Contact[];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]');
+      if (!Array.isArray(parsed)) throw new Error('資料格式不正確');
+      local = parsed;
+    } catch {
+      setNotice('本機舊資料格式無法讀取，原始資料沒有被更改');
+      return;
+    }
+    if (!local.length) { setNotice('這個瀏覽器沒有找到可匯入的舊資料'); return; }
+    setBusy(true);
+    const { data: remote, error: readError } = await supabase.from('contacts').select('name,department,extension,email');
+    if (readError) { setBusy(false); setNotice('檢查共用資料庫失敗：' + readError.message); return; }
+    const makeKey = (c: any) => [c.name,c.department,c.extension,c.email].map(v => String(v || '').trim().toLowerCase()).join('|');
+    const existing = new Set((remote || []).map(makeKey));
+    const pending = local.filter(c => c && String(c.name || '').trim() && !existing.has(makeKey(c)));
+    if (!pending.length) { setBusy(false); setNotice('舊資料已存在共用資料庫，沒有重複匯入'); await loadContacts(); return; }
+    const rows = pending.map(c => ({
+      name: String(c.name || ''), english_name: String(c.english_name || ''),
+      department: String(c.department || ''), title: String(c.title || ''),
+      extension: String(c.extension || ''), location: String(c.location || ''),
+      email: String(c.email || ''), remark: String(c.remark || '')
+    }));
+    const { error } = await supabase.from('contacts').insert(rows);
+    setBusy(false);
+    if (error) { setNotice('匯入失敗：' + error.message + '。本機舊資料仍完整保留。'); return; }
+    await loadContacts();
+    setNotice('成功匯入 ' + rows.length + ' 筆舊資料；本機備份仍然保留');
+  }
   async function deleteContact(id: string) {
     if (!window.confirm('確定刪除此通訊資料？')) return;
     if (id.startsWith('local-')) { const local = (JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]') as Contact[]).filter(c => c.id !== id); localStorage.setItem(LOCAL_KEY, JSON.stringify(local)); setContacts(old => old.filter(c => c.id !== id)); setNotice('資料已刪除'); return; }
@@ -111,7 +142,7 @@ export default function App() {
         <div className="results-label"><span>{showFavorites?'收藏的同事':'搜尋結果'}</span><span>{filtered.length} 個結果</span></div>
         {filtered.length === 0 ? <div className="empty-state"><div className="empty-icon"><Leaf size={25}/></div><h3>{contacts.length===0?'電話簿正在等待第一位同事':'沒有找到符合的同事'}</h3><p>{contacts.length===0?'任何人都可以新增第一位同事。':'試試其他關鍵字，或切換部門篩選。'}</p></div> :
           <div className="contact-grid">{filtered.map(c=><article className="contact-card" key={c.id}><div className="avatar">{c.name.slice(0,1)}</div><div className="contact-main"><div className="contact-name">{c.name}</div><div className="contact-en">{c.english_name}</div><div className="contact-role">{c.department} · {c.title}</div><div className="contact-meta">{c.location && <span><MapPin size={13}/>{c.location}</span>}{c.email && <span><Mail size={13}/>{c.email}</span>}{c.remark && <span className="contact-remark">{c.remark}</span>}</div></div><div className="contact-actions"><button className="favorite-button" onClick={()=>toggleFavorite(c.id)} aria-label="收藏"><Heart size={17} fill={favorites.includes(c.id)?'currentColor':'none'}/></button><div className="extension">{c.extension || '—'}</div><small>內線</small>{(session || c.id.startsWith('local-')) && <div className="admin-actions"><button onClick={()=>startEdit(c)}><Pencil size={14}/></button><button onClick={()=>deleteContact(c.id)}><Trash2 size={14}/></button></div>}</div></article>)}</div>}
-        <div className="panel-footer"><span><Leaf size={14}/> Simple · Fresh · Connected</span><button onClick={exportCsv}><Download size={14}/> 匯出 CSV</button></div>
+        <div className="panel-footer"><span><Leaf size={14}/> Simple · Fresh · Connected</span><div><button onClick={importLocalContacts} disabled={busy}><Download size={14}/> {busy?'處理中…':'匯入本機舊資料'}</button><button onClick={exportCsv}><Download size={14}/> 匯出 CSV</button></div></div>
       </section>
       <footer>用一點自然的溫度，連繫每一個工作日。</footer>
     </main>
