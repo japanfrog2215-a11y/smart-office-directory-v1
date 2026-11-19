@@ -57,7 +57,7 @@ export default function App() {
     setBusy(false); setNotice(error ? '登入失敗：' + error.message : '管理員登入成功');
   }
   async function signOut() { if (supabase) await supabase.auth.signOut(); setAdminOpen(false); }
-  function startEdit(c: Contact) { setEditing(c); const { id, ...rest } = c; setForm(rest); if (id.startsWith('local-')) setAddOpen(true); else setAdminOpen(true); }
+  function startEdit(c: Contact) { setEditing(c); const { id, ...rest } = c; setForm({ ...emptyContact, ...rest }); if (id.startsWith('local-')) setAddOpen(true); else setAdminOpen(true); }
   async function saveContact(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); setBusy(true);
     const people = editing ? [form] : [form, ...extraPeople].filter(p => p.name.trim());
