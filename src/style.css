@@ -57,3 +57,7 @@ body{background:radial-gradient(circle at 12% 10%,#ffe6ef 0,transparent 30%),rad
 /* English name: 2px smaller than Chinese name */
 .contact-name{font-size:14px}
 .contact-en{font-size:12px}
+
+
+/* Contact email font size */
+.contact-meta .contact-email{font-size:12px}
