@@ -90,7 +90,24 @@ export default function App() {
     loadHeroSettings();
     return () => { active = false; };
   }, []);
-  useEffect(() => { localStorage.setItem('office-favorites', JSON.stringify(favorites)); }, [favorites]);
+  useEffect(() => {
+    let active = true;
+    async function loadSharedFavorites() {
+      if (!supabase) {
+        try { setFavorites(JSON.parse(localStorage.getItem('office-favorites') || '[]')); } catch { setFavorites([]); }
+        return;
+      }
+      const { data, error } = await supabase.from('shared_favorites').select('contact_id');
+      if (!active) return;
+      if (error) {
+        setNotice('讀取共用最愛失敗：' + error.message + '。請先建立 shared_favorites 資料表。');
+        return;
+      }
+      setFavorites((data || []).map(row => String(row.contact_id)));
+    }
+    loadSharedFavorites();
+    return () => { active = false; };
+  }, []);
 
   const filtered = useMemo(() => contacts.filter(c => {
     const matchesDepartment = department === '全部部門' || c.department === department;
@@ -101,7 +118,23 @@ export default function App() {
   }).sort((a, b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id))), [contacts, department, query, showFavorites, favorites]);
 
   function startAdd() { setEditing(null); setForm(emptyContact); setExtraPeople([]); setAddOpen(true); }
-  function toggleFavorite(id: string) { setFavorites(old => old.includes(id) ? old.filter(x => x !== id) : [...old, id]); }
+  async function toggleFavorite(id: string) {
+    const isFavorite = favorites.includes(id);
+    if (!supabase) {
+      const next = isFavorite ? favorites.filter(x => x !== id) : [...favorites, id];
+      setFavorites(next);
+      localStorage.setItem('office-favorites', JSON.stringify(next));
+      return;
+    }
+    const result = isFavorite
+      ? await supabase.from('shared_favorites').delete().eq('contact_id', id)
+      : await supabase.from('shared_favorites').insert({ contact_id: id });
+    if (result.error && !( !isFavorite && result.error.code === '23505')) {
+      setNotice('更新共用最愛失敗：' + result.error.message);
+      return;
+    }
+    setFavorites(old => isFavorite ? old.filter(x => x !== id) : old.includes(id) ? old : [...old, id]);
+  }
   async function signIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); if (!supabase) return;
     const data = new FormData(e.currentTarget);
