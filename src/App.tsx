@@ -36,14 +36,15 @@ export default function App() {
     else { const local = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]') as Contact[]; setContacts([...local, ...((data || []) as Contact[])]); }
   }
   useEffect(() => {
-    if (!supabase) return;
-    supabase.auth.getSession().then(async ({ data }) => {
+    const client = supabase;
+    if (!client) return;
+    client.auth.getSession().then(async ({ data }) => {
       if (data.session?.user.email?.toLowerCase() === ADMIN_EMAIL) setSession(data.session);
-      else if (data.session) await supabase.auth.signOut();
+      else if (data.session) await client.auth.signOut();
     });
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, next) => {
+    const { data: listener } = client.auth.onAuthStateChange(async (_event, next) => {
       if (!next || next.user.email?.toLowerCase() === ADMIN_EMAIL) setSession(next);
-      else { setSession(null); await supabase.auth.signOut(); }
+      else { setSession(null); await client.auth.signOut(); }
     });
     loadContacts();
     return () => listener.subscription.unsubscribe();
