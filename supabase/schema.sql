@@ -19,9 +19,11 @@ on public.contacts for select
 to anon, authenticated
 using (true);
 
-create policy "Authenticated admins can insert contacts"
+drop policy if exists "Authenticated admins can insert contacts" on public.contacts;
+drop policy if exists "Anyone can insert contacts" on public.contacts;
+create policy "Anyone can insert contacts"
 on public.contacts for insert
-to authenticated
+to anon, authenticated
 with check (true);
 
 create policy "Authenticated admins can update contacts"
