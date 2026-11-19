@@ -83,3 +83,7 @@ body{background:radial-gradient(circle at 12% 10%,#ffe6ef 0,transparent 30%),rad
 .hero-copy .eyebrow,.hero-copy h1,.hero-copy p,.contact-name,.contact-en,.contact-role,.contact-meta span,.contact-remark{white-space:pre-line}
 .contact-meta span{align-items:flex-start}
 .contact-meta .contact-remark{display:block!important;max-width:100%}
+
+
+/* Extension field: display each Shift+Enter line on a separate line */
+.contact-actions .extension{white-space:pre-line;overflow-wrap:anywhere;text-align:right;max-width:100%;line-height:1.35}
