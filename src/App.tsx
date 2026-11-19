@@ -6,16 +6,18 @@ type Contact = {
   id: string; name: string; english_name: string; department: string;
   title: string; extension: string; direct_phone: string; location: string; email: string;
 };
+const LOCAL_KEY = 'office-local-contacts';
 const departments = ['行政部','人事部','財務部','市場部','資訊科技部','客戶服務部','營運部','其他'];
 const emptyContact: Omit<Contact, 'id'> = { name:'', english_name:'', department:departments[0], title:'', extension:'', direct_phone:'', location:'', email:'' };
 
 export default function App() {
-  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>(() => { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); } catch { return []; } });
   const [query, setQuery] = useState('');
   const [department, setDepartment] = useState('全部部門');
   const [favorites, setFavorites] = useState<string[]>(() => JSON.parse(localStorage.getItem('office-favorites') || '[]'));
   const [showFavorites, setShowFavorites] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [editing, setEditing] = useState<Contact | null>(null);
   const [form, setForm] = useState(emptyContact);
@@ -26,7 +28,7 @@ export default function App() {
     if (!supabase) return;
     const { data, error } = await supabase.from('contacts').select('*').order('department').order('name');
     if (error) setNotice('讀取資料失敗：' + error.message);
-    else setContacts((data || []) as Contact[]);
+    else { const local = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]') as Contact[]; setContacts([...local, ...((data || []) as Contact[])]); }
   }
   useEffect(() => {
     if (!supabase) return;
@@ -45,6 +47,7 @@ export default function App() {
     return matchesDepartment && matchesFavorite && matchesQuery;
   }), [contacts, department, query, showFavorites, favorites]);
 
+  function startAdd() { setEditing(null); setForm(emptyContact); setAddOpen(true); }
   function toggleFavorite(id: string) { setFavorites(old => old.includes(id) ? old.filter(x => x !== id) : [...old, id]); }
   async function signIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); if (!supabase) return;
@@ -55,7 +58,8 @@ export default function App() {
   async function signOut() { if (supabase) await supabase.auth.signOut(); setAdminOpen(false); }
   function startEdit(c: Contact) { setEditing(c); const { id, ...rest } = c; setForm(rest); setAdminOpen(true); }
   async function saveContact(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); if (!supabase || !session) return; setBusy(true);
+    e.preventDefault(); setBusy(true);
+    if (!supabase || !session) { const item = { ...form, id: 'local-' + Date.now().toString(36) }; const local = [...(JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]') as Contact[]), item]; localStorage.setItem(LOCAL_KEY, JSON.stringify(local)); setContacts(old => [item, ...old]); setBusy(false); setNotice('已儲存至此裝置'); setAddOpen(false); return; }
     const result = editing ? await supabase.from('contacts').update(form).eq('id', editing.id) : await supabase.from('contacts').insert(form);
     setBusy(false);
     if (result.error) setNotice('儲存失敗：' + result.error.message);
@@ -77,7 +81,7 @@ export default function App() {
   return <div className="app-shell">
     <header className="topbar">
       <a className="brand" href="#"><span className="brand-mark"><Leaf size={20}/></span><span>Smart Office <b>Directory</b></span></a>
-      <button className="icon-button" onClick={() => setAdminOpen(true)} aria-label="管理員登入"><Settings size={19}/></button>
+      <button className="add-button" onClick={startAdd}><Plus size={17}/>新增</button><button className="icon-button" onClick={() => setAdminOpen(true)} aria-label="管理員登入"><Settings size={19}/></button>
     </header>
     <main>
       <section className="hero">
@@ -96,6 +100,7 @@ export default function App() {
       <footer>用一點自然的溫度，連繫每一個工作日。</footer>
     </main>
     {notice && <div className="toast" onClick={()=>setNotice('')}>{notice}<button><X size={14}/></button></div>}
+    {addOpen && <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setAddOpen(false)}}><section className="modal"><div className="modal-head"><div><span className="eyebrow">NEW CONTACT</span><h2>新增通訊資料</h2></div><button className="icon-button" onClick={()=>setAddOpen(false)}><X/></button></div><form className="admin-form" onSubmit={saveContact}><div className="form-grid"><label>中文姓名<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>英文姓名<input value={form.english_name} onChange={e=>setForm({...form,english_name:e.target.value})}/></label><label>部門<select value={form.department} onChange={e=>setForm({...form,department:e.target.value})}>{departments.map(d=><option key={d}>{d}</option>)}</select></label><label>職位<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>內線號碼<input value={form.extension} onChange={e=>setForm({...form,extension:e.target.value})}/></label><label>直線電話<input value={form.direct_phone} onChange={e=>setForm({...form,direct_phone:e.target.value})}/></label><label>辦公室位置<input value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label><label>電郵<input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label></div><button className="primary-button" disabled={busy}><Plus size={16}/>{busy?'儲存中…':'儲存通訊資料'}</button></form></section></div>}
     {adminOpen && <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setAdminOpen(false)}}>
       <section className="modal"><div className="modal-head"><div><span className="eyebrow">ADMINISTRATION</span><h2>管理員中心</h2></div><button className="icon-button" onClick={()=>setAdminOpen(false)}><X/></button></div>
         {!isSupabaseConfigured ? <div className="setup-message"><Settings size={24}/><h3>尚未連接資料庫</h3><p>請先建立 Supabase 專案，並在部署環境設定 VITE_SUPABASE_URL 及 VITE_SUPABASE_ANON_KEY。完成後即可使用管理員登入及員工資料管理。</p></div> :
