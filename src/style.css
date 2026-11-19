@@ -77,3 +77,9 @@ body{background:radial-gradient(circle at 12% 10%,#ffe6ef 0,transparent 30%),rad
 .hero-editor-actions button{border:1px solid #efc9d8;border-radius:8px;padding:8px 13px;background:#fff0f5;color:#a96f89;font-size:11px}
 .hero-editor-actions button:last-child{background:#d98eae;color:#fff;border-color:#d98eae}
 @media(max-width:650px){.hero-copy{max-width:100%}.hero-copy[style*="center"],.hero-copy[style*="right"]{margin-left:0;margin-right:0}.hero-editor-options{grid-template-columns:1fr}}
+
+
+/* Preserve Shift+Enter line breaks when displaying entered text */
+.hero-copy .eyebrow,.hero-copy h1,.hero-copy p,.contact-name,.contact-en,.contact-role,.contact-meta span,.contact-remark{white-space:pre-line}
+.contact-meta span{align-items:flex-start}
+.contact-meta .contact-remark{display:block!important;max-width:100%}
