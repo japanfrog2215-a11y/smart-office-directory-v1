@@ -61,3 +61,19 @@ body{background:radial-gradient(circle at 12% 10%,#ffe6ef 0,transparent 30%),rad
 
 /* Contact email font size */
 .contact-meta .contact-email{font-size:12px}
+
+
+/* Editable homepage hero text */
+.hero-copy{width:100%;max-width:500px}
+.hero-copy[style*="center"]{margin-left:auto;margin-right:auto}
+.hero-copy[style*="right"]{margin-left:auto}
+.hero-edit-button{display:inline-flex;margin-top:14px;padding:7px 12px;border:1px solid #e9bfd0;border-radius:9px;background:#fff8;color:#a96f89;font-size:11px}
+.hero-editor{position:relative;z-index:4;width:min(560px,calc(100% - 32px));margin:-12px auto 22px;padding:18px;background:#fffafb;border:1px solid #f0dce5;border-radius:16px;box-shadow:0 10px 30px #a76b8218;display:flex;flex-direction:column;gap:11px}
+.hero-editor-title{font-size:14px;font-weight:700;color:#98677e}
+.hero-editor label{display:flex;flex-direction:column;gap:5px;color:#a2768c;font-size:11px}
+.hero-editor input,.hero-editor textarea,.hero-editor select{width:100%;border:1px solid #f0dce5;border-radius:8px;padding:9px;background:#fff;color:#805f70;font:inherit;font-size:12px;outline-color:#dfa5bd}
+.hero-editor-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hero-editor-actions{display:flex;justify-content:flex-end;gap:8px}
+.hero-editor-actions button{border:1px solid #efc9d8;border-radius:8px;padding:8px 13px;background:#fff0f5;color:#a96f89;font-size:11px}
+.hero-editor-actions button:last-child{background:#d98eae;color:#fff;border-color:#d98eae}
+@media(max-width:650px){.hero-copy{max-width:100%}.hero-copy[style*="center"],.hero-copy[style*="right"]{margin-left:0;margin-right:0}.hero-editor-options{grid-template-columns:1fr}}
