@@ -1,0 +1,10 @@
+{
+  "name": "Smart Office Directory",
+  "short_name": "Office Directory",
+  "description": "部門內線電話簿",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f6f5ed",
+  "theme_color": "#edf1e5",
+  "icons": []
+}
