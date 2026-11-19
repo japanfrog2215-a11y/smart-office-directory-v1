@@ -27,7 +27,19 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [heroEditorOpen, setHeroEditorOpen] = useState(false);
   const [heroText, setHeroText] = useState(() => { try { return JSON.parse(localStorage.getItem('office-hero-text') || '{"eyebrow":"","title":"","description":"","fontSize":32,"position":"left"}'); } catch { return { eyebrow:'', title:'', description:'', fontSize:32, position:'left' }; } });
-  function saveHeroText() { localStorage.setItem('office-hero-text', JSON.stringify(heroText)); setHeroEditorOpen(false); setNotice('首頁文字設定已儲存'); }
+  async function saveHeroText() {
+    localStorage.setItem('office-hero-text', JSON.stringify(heroText));
+    if (!supabase || !session) { setNotice('請先以管理員登入，才能儲存首頁設定'); return; }
+    setBusy(true);
+    const { error } = await supabase.from('app_settings').upsert(
+      { key: 'homepage_hero', value: heroText, updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+    setBusy(false);
+    if (error) { setNotice('雲端儲存失敗：' + error.message + '。本機設定仍已保留'); return; }
+    setHeroEditorOpen(false);
+    setNotice('首頁文字已儲存至雲端');
+  }
 
   async function loadContacts() {
     if (!supabase) return;
@@ -48,6 +60,23 @@ export default function App() {
     });
     loadContacts();
     return () => listener.subscription.unsubscribe();
+  }, []);
+  useEffect(() => {
+    let active = true;
+    async function loadHeroSettings() {
+      if (!supabase) return;
+      const { data, error } = await supabase.from('app_settings').select('value').eq('key', 'homepage_hero').maybeSingle();
+      if (!active) return;
+      if (!error && data?.value) {
+        const defaults = { eyebrow:'', title:'', description:'', fontSize:32, position:'left' };
+        const remote = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+        const merged = { ...defaults, ...remote };
+        setHeroText(merged);
+        localStorage.setItem('office-hero-text', JSON.stringify(merged));
+      }
+    }
+    loadHeroSettings();
+    return () => { active = false; };
   }, []);
   useEffect(() => { localStorage.setItem('office-favorites', JSON.stringify(favorites)); }, [favorites]);
 
@@ -150,7 +179,7 @@ export default function App() {
       </section>
       <footer>用一點自然的溫度，連繫每一個工作日。</footer>
     </main>
-    {session && heroEditorOpen && <div className="hero-editor"><div className="hero-editor-title">首頁文字設定</div><label>上方小標題<input value={heroText.eyebrow} onChange={e=>setHeroText({...heroText,eyebrow:e.target.value})} placeholder="自行輸入文字（可留空）"/></label><label>主標題<textarea rows={2} value={heroText.title} onChange={e=>setHeroText({...heroText,title:e.target.value})} placeholder="輸入首頁主標題"/></label><label>補充文字<textarea rows={2} value={heroText.description} onChange={e=>setHeroText({...heroText,description:e.target.value})} placeholder="輸入補充說明"/></label><div className="hero-editor-options"><label>主標題字體大小（px）<input type="number" min="12" max="64" value={heroText.fontSize} onChange={e=>setHeroText({...heroText,fontSize:Math.max(12,Math.min(64,Number(e.target.value)||12))})}/></label><label>文字位置<select value={heroText.position} onChange={e=>setHeroText({...heroText,position:e.target.value})}><option value="left">靠左</option><option value="center">置中</option><option value="right">靠右</option></select></label></div><div className="hero-editor-actions"><button type="button" onClick={()=>{setHeroText({eyebrow:'',title:'',description:'',fontSize:32,position:'left'});localStorage.removeItem('office-hero-text');setHeroEditorOpen(false);}}>清空</button><button type="button" onClick={saveHeroText}>儲存設定</button></div></div>}
+    {session && heroEditorOpen && <div className="hero-editor"><div className="hero-editor-title">首頁文字設定</div><label>上方小標題<input value={heroText.eyebrow} onChange={e=>setHeroText({...heroText,eyebrow:e.target.value})} placeholder="自行輸入文字（可留空）"/></label><label>主標題<textarea rows={2} value={heroText.title} onChange={e=>setHeroText({...heroText,title:e.target.value})} placeholder="輸入首頁主標題"/></label><label>補充文字<textarea rows={2} value={heroText.description} onChange={e=>setHeroText({...heroText,description:e.target.value})} placeholder="輸入補充說明"/></label><div className="hero-editor-options"><label>主標題字體大小（px）<input type="number" min="12" max="64" value={heroText.fontSize} onChange={e=>setHeroText({...heroText,fontSize:Math.max(12,Math.min(64,Number(e.target.value)||12))})}/></label><label>文字位置<select value={heroText.position} onChange={e=>setHeroText({...heroText,position:e.target.value})}><option value="left">靠左</option><option value="center">置中</option><option value="right">靠右</option></select></label></div><div className="hero-editor-actions"><button type="button" onClick={()=>{setHeroText({eyebrow:'',title:'',description:'',fontSize:32,position:'left'});localStorage.removeItem('office-hero-text');setHeroEditorOpen(false);}}>清空</button><button type="button" onClick={saveHeroText} disabled={busy}>{busy?'儲存中…':'儲存設定'}</button></div></div>}
     {notice && <div className="toast" onClick={()=>setNotice('')}>{notice}<button><X size={14}/></button></div>}
     {addOpen && <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setAddOpen(false)}}><section className="modal"><div className="modal-head"><div><span className="eyebrow">NEW CONTACT</span><h2>新增通訊資料</h2></div><button className="icon-button" onClick={()=>setAddOpen(false)}><X/></button></div><form className="admin-form" onSubmit={saveContact}><div className="form-grid"><label>中文姓名<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>英文姓名<textarea rows={1} value={form.english_name} onChange={e=>setForm({...form,english_name:e.target.value})}/></label><label>部門<textarea rows={1} value={form.department} onChange={e=>setForm({...form,department:e.target.value})} placeholder="自行輸入部門"/></label><label>職位<textarea rows={1} value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>內線號碼<textarea rows={1} value={form.extension} onChange={e=>setForm({...form,extension:e.target.value})}/></label><label>辦公室位置<textarea rows={1} value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label><label>電郵<input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label><label>Remark<textarea rows={1} value={form.remark} onChange={e=>setForm({...form,remark:e.target.value})} placeholder="備註"/></label></div>{extraPeople.map((person,index)=><div className="extra-person" key={index}><div className="extra-person-head"><b>新增人員 {index+2}</b><button type="button" onClick={()=>setExtraPeople(old=>old.filter((_,i)=>i!==index))}><Trash2 size={14}/> 移除</button></div><div className="form-grid">{([['name','中文姓名'],['english_name','英文姓名'],['title','職位'],['extension','內線號碼'],['location','辦公室位置'],['email','電郵'],['remark','Remark']] as const).map(([key,label])=><label key={key}>{label}{key === 'email' ? <input type="email" value={person[key]} onChange={e=>setExtraPeople(old=>old.map((p,i)=>i===index?{...p,[key]:e.target.value}:p))}/> : <textarea rows={1} value={person[key]} onChange={e=>setExtraPeople(old=>old.map((p,i)=>i===index?{...p,[key]:e.target.value}:p))}/>} </label>)}</div></div>)}<button type="button" className="add-person-button" onClick={()=>setExtraPeople(old=>[...old,{...emptyContact,department:form.department}])}><Plus size={16}/> 增加更多人員</button><button className="primary-button" disabled={busy}><Plus size={16}/>{busy?'儲存中…':'儲存通訊資料'}</button></form></section></div>}
     {adminOpen && <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setAdminOpen(false)}}>
