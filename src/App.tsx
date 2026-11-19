@@ -56,17 +56,19 @@ export default function App() {
     setBusy(false); setNotice(error ? '登入失敗：' + error.message : '管理員登入成功');
   }
   async function signOut() { if (supabase) await supabase.auth.signOut(); setAdminOpen(false); }
-  function startEdit(c: Contact) { setEditing(c); const { id, ...rest } = c; setForm(rest); setAdminOpen(true); }
+  function startEdit(c: Contact) { setEditing(c); const { id, ...rest } = c; setForm(rest); if (id.startsWith('local-')) setAddOpen(true); else setAdminOpen(true); }
   async function saveContact(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); setBusy(true);
-    if (!supabase || !session) { const item = { ...form, id: 'local-' + Date.now().toString(36) }; const local = [...(JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]') as Contact[]), item]; localStorage.setItem(LOCAL_KEY, JSON.stringify(local)); setContacts(old => [item, ...old]); setBusy(false); setNotice('已儲存至此裝置'); setAddOpen(false); return; }
+    if (!supabase || !session || editing?.id.startsWith('local-')) { const current = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]') as Contact[]; const local = editing?.id.startsWith('local-') ? current.map(c => c.id === editing.id ? { ...form, id: editing.id } : c) : [{ ...form, id: 'local-' + Date.now().toString(36) }, ...current]; localStorage.setItem(LOCAL_KEY, JSON.stringify(local)); setContacts(old => [...local.filter(c => !old.some(o => o.id === c.id)), ...old.filter(c => !c.id.startsWith('local-'))]); setBusy(false); setNotice('已儲存至此裝置'); setAddOpen(false); setEditing(null); return; }
     const result = editing ? await supabase.from('contacts').update(form).eq('id', editing.id) : await supabase.from('contacts').insert(form);
     setBusy(false);
     if (result.error) setNotice('儲存失敗：' + result.error.message);
     else { setNotice('資料已儲存'); setAdminOpen(false); await loadContacts(); }
   }
   async function deleteContact(id: string) {
-    if (!supabase || !session || !window.confirm('確定刪除此員工資料？')) return;
+    if (!window.confirm('確定刪除此通訊資料？')) return;
+    if (id.startsWith('local-')) { const local = (JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]') as Contact[]).filter(c => c.id !== id); localStorage.setItem(LOCAL_KEY, JSON.stringify(local)); setContacts(old => old.filter(c => c.id !== id)); setNotice('資料已刪除'); return; }
+    if (!supabase || !session) return;
     const { error } = await supabase.from('contacts').delete().eq('id', id);
     if (error) setNotice('刪除失敗：' + error.message); else { setNotice('資料已刪除'); await loadContacts(); }
   }
@@ -94,7 +96,7 @@ export default function App() {
         <div className="toolbar"><div className="department-select"><Building2 size={16}/><select value={department} onChange={e=>setDepartment(e.target.value)}><option>全部部門</option>{departments.map(d=><option key={d}>{d}</option>)}</select></div><button className={showFavorites?'filter-chip active':'filter-chip'} onClick={()=>setShowFavorites(v=>!v)}><Heart size={15} fill={showFavorites?'currentColor':'none'}/> 我的最愛</button></div>
         <div className="results-label"><span>{showFavorites?'收藏的同事':'搜尋結果'}</span><span>{filtered.length} 個結果</span></div>
         {filtered.length === 0 ? <div className="empty-state"><div className="empty-icon"><Leaf size={25}/></div><h3>{contacts.length===0?'電話簿正在等待第一位同事':'沒有找到符合的同事'}</h3><p>{contacts.length===0?'管理員登入後即可新增員工資料。':'試試其他關鍵字，或切換部門篩選。'}</p></div> :
-          <div className="contact-grid">{filtered.map(c=><article className="contact-card" key={c.id}><div className="avatar">{c.name.slice(0,1)}</div><div className="contact-main"><div className="contact-name">{c.name}</div><div className="contact-en">{c.english_name}</div><div className="contact-role">{c.department} · {c.title}</div><div className="contact-meta">{c.location && <span><MapPin size={13}/>{c.location}</span>}{c.email && <span><Mail size={13}/>{c.email}</span>}</div></div><div className="contact-actions"><button className="favorite-button" onClick={()=>toggleFavorite(c.id)} aria-label="收藏"><Heart size={17} fill={favorites.includes(c.id)?'currentColor':'none'}/></button><div className="extension">{c.extension || '—'}</div><small>內線</small>{c.direct_phone && <a className="phone-link" href={'tel:' + c.direct_phone}><Phone size={13}/>撥打</a>}{session && <div className="admin-actions"><button onClick={()=>startEdit(c)}><Pencil size={14}/></button><button onClick={()=>deleteContact(c.id)}><Trash2 size={14}/></button></div>}</div></article>)}</div>}
+          <div className="contact-grid">{filtered.map(c=><article className="contact-card" key={c.id}><div className="avatar">{c.name.slice(0,1)}</div><div className="contact-main"><div className="contact-name">{c.name}</div><div className="contact-en">{c.english_name}</div><div className="contact-role">{c.department} · {c.title}</div><div className="contact-meta">{c.location && <span><MapPin size={13}/>{c.location}</span>}{c.email && <span><Mail size={13}/>{c.email}</span>}</div></div><div className="contact-actions"><button className="favorite-button" onClick={()=>toggleFavorite(c.id)} aria-label="收藏"><Heart size={17} fill={favorites.includes(c.id)?'currentColor':'none'}/></button><div className="extension">{c.extension || '—'}</div><small>內線</small>{c.direct_phone && <a className="phone-link" href={'tel:' + c.direct_phone}><Phone size={13}/>撥打</a>}{(session || c.id.startsWith('local-')) && <div className="admin-actions"><button onClick={()=>startEdit(c)}><Pencil size={14}/></button><button onClick={()=>deleteContact(c.id)}><Trash2 size={14}/></button></div>}</div></article>)}</div>}
         <div className="panel-footer"><span><Leaf size={14}/> Simple · Fresh · Connected</span><button onClick={exportCsv}><Download size={14}/> 匯出 CSV</button></div>
       </section>
       <footer>用一點自然的溫度，連繫每一個工作日。</footer>
